@@ -1,7 +1,7 @@
-import axios, { AxiosError } from "axios"
-import {  parseCookies, setCookie } from "nookies"
-import { signOut } from "../contexts/AuthContext"
-import { AuthTokenError } from "./errors/AuthTokenError"
+import axios, { AxiosError } from 'axios'
+import { parseCookies, setCookie } from 'nookies'
+import { signOut } from '../contexts/AuthContext'
+import { AuthTokenError } from './errors/AuthTokenError'
 
 let isRefreshing = false
 let failedRequestsBecauseOfRefreshQueue: {
@@ -13,11 +13,11 @@ export function setupAPIClient(ctx = undefined) {
   const cookies = parseCookies(ctx)
 
   const api = axios.create({
-    baseURL: "http://localhost:3333",
+    baseURL: 'http://localhost:3333',
 
     // setting default headers to always get token via cookies
     headers: {
-      Authorization: `Bearer ${cookies["nextAuthToken"]}`,
+      Authorization: `Bearer ${cookies['nextAuthToken']}`,
     },
   })
 
@@ -30,7 +30,7 @@ export function setupAPIClient(ctx = undefined) {
     // if it returns an error, see it token needs a refresh or if we will unlog the user
     (error: AxiosError) => {
       if (error?.response?.status === 401) {
-        if (error?.response?.data?.code === "token.expired") {
+        if (error?.response?.data?.code === 'token.expired') {
           // refresh token
           const refreshedCookies = parseCookies(ctx)
 
@@ -43,28 +43,28 @@ export function setupAPIClient(ctx = undefined) {
           if (!isRefreshing) {
             isRefreshing = true
             api
-              .post("/refresh", {
+              .post('/refresh', {
                 refreshToken,
               })
               .then((response) => {
                 const { token } = response.data
 
-                setCookie(ctx, "nextAuthToken", token, {
+                setCookie(ctx, 'nextAuthToken', token, {
                   maxAge: 60 * 60 * 24 * 30, // 30 days
-                  path: "/",
+                  path: '/',
                 })
                 setCookie(
                   ctx,
-                  "nextAuthRefreshToken",
+                  'nextAuthRefreshToken',
                   response.data.refreshToken,
                   {
                     maxAge: 60 * 60 * 24 * 30, // 30 days
-                    path: "/",
+                    path: '/',
                   }
                 )
 
                 // setting headers again after refreshing
-                api.defaults.headers.common["Authorization"] = `Bearer ${token}`
+                api.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
                 // after refresh is done we execute all requests that were waiting (If it was a success)
                 failedRequestsBecauseOfRefreshQueue.forEach((request) =>
@@ -89,7 +89,7 @@ export function setupAPIClient(ctx = undefined) {
           return new Promise((resolve, reject) => {
             failedRequestsBecauseOfRefreshQueue.push({
               onSuccess: (token: string) => {
-                originalConfig.headers!["Authorization"] = `Bearer ${token}`
+                originalConfig.headers!['Authorization'] = `Bearer ${token}`
 
                 resolve(api(originalConfig))
               },
@@ -102,7 +102,7 @@ export function setupAPIClient(ctx = undefined) {
           // unlog user and erase all cookies
           const isInsideBrowser = process.browser
           if (isInsideBrowser) {
-            signOut(ctx)
+            signOut()
           } else {
             return Promise.reject(new AuthTokenError())
           }
